@@ -1,0 +1,9 @@
+# The Scribe agent the app needs (H.2): set up from this definition when you add the app, or one
+# of your agents that fits (its form takes `request`, its result gives `status` and `summary`).
+[agent]
+name = "Scribe"
+description = "Turns your notes into actions, decisions and a follow-up"
+network = "filtered"            # its model only: it works on files of its folder
+egress = "enforce"
+confinement = "strict"
+permissions = "bypass"          # it runs alone (a job): its sandbox limits it

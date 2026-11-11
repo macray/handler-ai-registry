@@ -1,0 +1,10 @@
+#!/bin/sh
+# The tool's rebuild check (contract G.4), run offline: the binary runs on the toolbox's glibc,
+# parses a page and runs its JavaScript. A toolbox rebuild re-runs it.
+set -eu
+page='data:text/html,<h1>handler</h1><script>document.querySelector("h1").textContent += "-js"</script>'
+out="$(lightpanda fetch --log-level error --dump html "$page")"
+case "$out" in
+*"<h1>handler-js</h1>"*) echo "Lightpanda $(lightpanda version) loads a page and runs its JavaScript" ;;
+*) echo "unexpected page content: $out" >&2; exit 1 ;;
+esac

@@ -1,0 +1,26 @@
+# Impeccable tool (contract G.1, handler.tool/v1): Paul Bakaus's Impeccable, a design vocabulary
+# for the agent (critique, audit, polish, bolder…) and a detector of the tells of generated UI.
+# Its skill runs the engine this image installs, never one it downloads. Nothing to configure:
+# chosen by name.
+apiVersion = "handler.tool/v1"
+name = "impeccable"
+description = "Design commands and a UI slop detector for your agents (Paul Bakaus's Impeccable)"
+image = "localhost/handler-ai-tool-impeccable"  # no tag: built, then extracted (G.4)
+commands = ["impeccable"]
+# Offline: the engine says its version.
+check = ["impeccable", "engine-probe"]
+# The detector renders pages in the toolbox's Chromium.
+needs = ["chromium"]
+# Google Fonts, which the pages it renders and its font matching load.
+egress = ["fonts.googleapis.com:443", "fonts.gstatic.com:443"]
+
+[env]
+# the skill's launcher runs this engine instead of downloading one
+IMPECCABLE_BIN = "/opt/tools/impeccable/bin/impeccable"
+# updates come with the tool (Handler offers them), not from the engine
+IMPECCABLE_NO_UPDATE_CHECK = "1"
+# live mode's Apply would start another coding agent with its approvals off
+IMPECCABLE_LIVE_COPY_AGENT = "off"
+# The engine starts Chromium itself; its own sandbox cannot start under the `strict`
+# confinement (the agent's sandbox is the boundary). Fedora's launcher adds these flags.
+CHROMIUM_USER_FLAGS = "--no-sandbox"

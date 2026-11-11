@@ -1,0 +1,54 @@
+# Tracker: count what matters to you (water, a run, pages read, interruptions…), with a tap on the
+# computer or the phone, and a Coach agent that looks at your numbers (contract H, handler.app/v1).
+# Nothing here is yours: you give it a folder and an agent when you install it.
+apiVersion = "handler.app/v1"
+name = "tracker"
+version = "0.1.0"
+description = "Count anything with a tap; a coach looks at your days and weeks"
+
+[needs.files.log]
+description = "Where what you track is kept (trackers.json, log.jsonl), shared with your Coach"
+mode = "rw"
+init = ["agent/README.md"]      # the folder's format, for the agent and the app
+
+[needs.agents.coach]
+description = "Looks at what you logged and tells you how you are doing"
+from = "agent"                  # agent.toml, instructions.md, interface.json
+worksIn = "log"
+
+# Made from the app's page (Manage), each off until you turn it on; results come to your inbox.
+[[automations]]
+description = "An evening check-in, every day at 20:00"
+when = { at = "20:00" }
+run = { agent = "coach", input = { fields = { request = "Evening check-in: which of today's goals can I still reach before bed? Say nothing if all is fine." } } }
+
+[[automations]]
+description = "Your week in review, Sundays at 18:00"
+when = { at = "18:00", days = ["sun"] }
+run = { agent = "coach", input = { fields = { request = "Weekly review: how did this week go compared to the one before, and one thing to try next week." } } }
+
+# Its actions, what you can ask it in a sentence (H.12): its code answers at once; the review is its agent's.
+[actions.log]
+description = "Log something I did or had: an amount on one of my trackers (made if I have none of that name)"
+examples = ["I drank 2 glasses of water", "I ran 5 km", "Log a coffee", "Read 30 pages yesterday"]
+route = "POST /api/actions/log"
+[actions.log.fields]
+type = "object"
+required = ["what"]
+properties.what = { type = "string", title = "What", maxLength = 40, description = "the tracker's name: water, run, coffee" }
+properties.amount = { type = "number", title = "How much", exclusiveMinimum = 0, description = "in the tracker's unit; one step when not said" }
+properties.day = { type = "string", title = "Day", pattern = "^\\d{4}-\\d{2}-\\d{2}$", description = "YYYY-MM-DD, today when not said" }
+properties.note = { type = "string", title = "Note", maxLength = 200 }
+
+[actions.today]
+description = "Say where each of my trackers is today, against its goal"
+examples = ["How am I doing today?", "How much water did I drink?"]
+route = "POST /api/actions/today"
+[actions.today.fields]
+type = "object"
+properties.day = { type = "string", title = "Day", pattern = "^\\d{4}-\\d{2}-\\d{2}$", description = "YYYY-MM-DD, today when not said" }
+
+[actions.review]
+description = "Look at my days and weeks: trends, streaks, what to change"
+examples = ["How was my week?", "Am I drinking enough water?", "What should I improve?"]
+agent = "coach"

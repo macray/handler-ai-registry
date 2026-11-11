@@ -1,0 +1,4 @@
+name = "ponytail"
+description = "A coding agent that writes the smallest complete change, and a weekly audit of your code (DietrichGebert's Ponytail)"
+version = 1
+place = "project"

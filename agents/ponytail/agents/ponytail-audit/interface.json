@@ -1,0 +1,51 @@
+{
+  "fields": {
+    "type": "object",
+    "properties": {
+      "scope": {
+        "type": "string",
+        "title": "What to audit",
+        "description": "A folder or a package. Empty: the whole repository."
+      }
+    }
+  },
+  "result": {
+    "type": "object",
+    "required": ["verdict", "repo", "findings", "fixFirst", "notChecked"],
+    "properties": {
+      "verdict": {
+        "title": "Verdict",
+        "enum": ["healthy", "should-fix", "must-fix"],
+        "description": "The most important group with a finding; healthy when there is none.",
+        "x-handler": "verdict"
+      },
+      "repo": { "title": "What this repo does", "type": "string" },
+      "findings": {
+        "title": "Findings",
+        "type": "array",
+        "maxItems": 20,
+        "items": {
+          "type": "object",
+          "required": ["group", "title", "where", "what", "problem", "fix", "ifSkipped"],
+          "properties": {
+            "group": {
+              "title": "Group",
+              "enum": ["nice-to-have", "should-fix", "must-fix"],
+              "x-handler": "verdict"
+            },
+            "title": { "title": "Finding", "type": "string" },
+            "where": { "title": "Where", "type": "string", "description": "path:Lfrom-to" },
+            "what": { "title": "What this is", "type": "string" },
+            "problem": { "title": "Problem", "type": "string" },
+            "fix": { "title": "Fix", "type": "string" },
+            "ifSkipped": { "title": "If we skip it", "type": "string" }
+          }
+        }
+      },
+      "fixFirst": { "title": "Fix first", "type": "string" },
+      "lean": { "title": "Lean", "type": "string" },
+      "notChecked": { "title": "Not checked", "type": "string" }
+    }
+  },
+  "timeoutSec": 3600
+}

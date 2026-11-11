@@ -1,0 +1,33 @@
+# Go tool image (contract G.1): the official release archive of Go, shipped as the installed
+# tree only, mounted read-only at /opt/tools/go.
+#
+# Not pinned: every rebuild installs the latest stable release; the build fails if the archive
+# or its checksum cannot be had.
+ARG TOOLBOX_IMAGE=localhost/handler-ai-toolbox:latest
+FROM ${TOOLBOX_IMAGE} AS build
+ARG PREFIX=/opt/tools/go
+
+# go.dev lists its releases, the latest stable first, each archive with its checksum.
+RUN set -eu \
+    && case "$(uname -m)" in x86_64) arch=amd64 ;; aarch64) arch=arm64 ;; *) exit 1 ;; esac \
+    && file="$(curl -fsSL 'https://go.dev/dl/?mode=json' \
+        | jq -er --arg arch "$arch" '[.[] | select(.stable)][0] | .files[] \
+            | select(.os == "linux" and .arch == $arch and .kind == "archive") \
+            | [.version, .filename, .sha256] | @tsv')" \
+    && version="$(echo "$file" | cut -f1)" \
+    && archive="$(echo "$file" | cut -f2)" \
+    && cd /tmp \
+    && curl -fsSLO "https://go.dev/dl/${archive}" \
+    && echo "$(echo "$file" | cut -f3)  ${archive}" | sha256sum -c - \
+    && mkdir -p "$PREFIX/bin" \
+    && tar -xzf "$archive" -C "$PREFIX" \
+    && rm "$archive" \
+    && ln -s ../go/bin/go "$PREFIX/bin/go" \
+    && ln -s ../go/bin/gofmt "$PREFIX/bin/gofmt" \
+    && "$PREFIX/bin/go" version | grep -q " ${version} " \
+    && echo "Go ${version#go}" > "$PREFIX/version" \
+    && rm -rf /home/agent
+
+FROM scratch
+COPY --from=build /opt/tools/go /
+LABEL org.opencontainers.image.title="handler-ai-tool-go"

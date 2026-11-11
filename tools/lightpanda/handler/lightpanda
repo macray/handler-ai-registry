@@ -1,0 +1,23 @@
+#!/bin/sh
+# handler wrapper around the Lightpanda binary (lib/lightpanda), the tool's `lightpanda` command.
+#
+# - The sandbox's proxy: libcurl reads HTTPS_PROXY and NO_PROXY itself. Its CA is another matter:
+#   Lightpanda does not read SSL_CERT_FILE, so a proxy that decrypts (towards the hosts of a
+#   secret, contract A.3) fails its TLS unless the bundle is given with --ca-cert, to the commands
+#   that browse. That bundle holds the system's roots too: it replaces the trust store whole.
+# - No telemetry (on by default): it would only reach a host the agent is not allowed.
+LIB="$(dirname "$(readlink -f "$0")")/../lib"
+
+: "${LIGHTPANDA_DISABLE_TELEMETRY:=true}"
+export LIGHTPANDA_DISABLE_TELEMETRY
+
+case "$1" in
+fetch | serve | mcp | agent | run)
+    if [ -n "$SSL_CERT_FILE" ] && [ -r "$SSL_CERT_FILE" ]; then
+        cmd="$1"
+        shift
+        exec "$LIB/lightpanda" "$cmd" --ca-cert "$SSL_CERT_FILE" "$@"
+    fi
+    ;;
+esac
+exec "$LIB/lightpanda" "$@"

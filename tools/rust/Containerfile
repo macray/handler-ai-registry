@@ -1,0 +1,32 @@
+# Rust tool image (contract G.1): rustup and the stable toolchain (minimal profile, rustfmt,
+# clippy), installed by rustup-init, shipped as the installed tree only, mounted read-only at
+# /opt/tools/rust: toolchains in rustup/ (RUSTUP_HOME), rustup's commands in cargo/bin.
+#
+# Not pinned: every rebuild installs the latest rustup and stable Rust; the build fails if
+# rustup-init or its checksum cannot be had.
+ARG TOOLBOX_IMAGE=localhost/handler-ai-toolbox:latest
+FROM ${TOOLBOX_IMAGE} AS build
+ARG PREFIX=/opt/tools/rust
+
+RUN set -eu \
+    && triple="$(uname -m)-unknown-linux-gnu" \
+    && url="https://static.rust-lang.org/rustup/dist/${triple}/rustup-init" \
+    && cd /tmp \
+    && curl -fsSLO "$url" \
+    && echo "$(curl -fsSL "${url}.sha256" | cut -d' ' -f1)  rustup-init" | sha256sum -c - \
+    && chmod +x rustup-init \
+    && RUSTUP_HOME="$PREFIX/rustup" CARGO_HOME="$PREFIX/cargo" ./rustup-init -y --no-modify-path \
+        --profile minimal --component rustfmt,clippy --default-toolchain stable \
+    && rm rustup-init \
+    && mkdir -p "$PREFIX/bin" \
+    && for c in rustup cargo rustc rustdoc rustfmt cargo-fmt cargo-clippy clippy-driver; do \
+        ln -s "../cargo/bin/$c" "$PREFIX/bin/$c"; \
+    done \
+    && rust="$(RUSTUP_HOME="$PREFIX/rustup" "$PREFIX/bin/rustc" --version | cut -d' ' -f2)" \
+    && rustup="$("$PREFIX/bin/rustup" --version 2>/dev/null | cut -d' ' -f2)" \
+    && echo "Rust ${rust} (rustup ${rustup})" > "$PREFIX/version" \
+    && rm -rf "$PREFIX/rustup/downloads" "$PREFIX/rustup/tmp" /home/agent
+
+FROM scratch
+COPY --from=build /opt/tools/rust /
+LABEL org.opencontainers.image.title="handler-ai-tool-rust"

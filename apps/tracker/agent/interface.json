@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "type": "object",
+    "properties": {
+      "request": { "type": "string", "title": "Request", "x-handler": "long-text" }
+    }
+  },
+  "result": {
+    "type": "object",
+    "required": ["status", "summary"],
+    "properties": {
+      "status": { "enum": ["ok", "attention", "failed"], "title": "Status" },
+      "summary": { "type": "string", "title": "Summary" }
+    }
+  }
+}

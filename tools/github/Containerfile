@@ -1,0 +1,36 @@
+# GitHub CLI tool image (contract G.1): the `gh` release binary (static, Go), shipped as the
+# installed tree only, mounted read-only at /opt/tools/github. Next to it, `docs/gh-skill.md`:
+# GitHub's own agent guide for `gh` (cli/cli `skills/gh/SKILL.md`) at the same tag as the binary,
+# which the tool's skill points to.
+#
+# Not pinned: every rebuild installs the latest release and its guide; the build fails if the
+# tag, the archive, its checksum or the guide cannot be had.
+ARG TOOLBOX_IMAGE=localhost/handler-ai-toolbox:latest
+FROM ${TOOLBOX_IMAGE} AS build
+ARG PREFIX=/opt/tools/github
+
+# The latest tag from the redirect of releases/latest: no API call (rate-limited without a token).
+RUN set -eu \
+    && tag="$(curl -fsSI https://github.com/cli/cli/releases/latest \
+        | sed -n 's#^location: .*/releases/tag/\(v[0-9][0-9.]*\)\r\?$#\1#ip')" \
+    && test -n "$tag" \
+    && version="${tag#v}" \
+    && case "$(uname -m)" in x86_64) arch=amd64 ;; aarch64) arch=arm64 ;; *) exit 1 ;; esac \
+    && archive="gh_${version}_linux_${arch}.tar.gz" \
+    && base="https://github.com/cli/cli/releases/download/${tag}" \
+    && cd /tmp \
+    && curl -fsSLO "${base}/${archive}" \
+    && curl -fsSL "${base}/gh_${version}_checksums.txt" | grep " ${archive}\$" | sha256sum -c - \
+    && tar -xzf "$archive" \
+    && mkdir -p "$PREFIX/bin" "$PREFIX/docs" \
+    && install -m 0755 "gh_${version}_linux_${arch}/bin/gh" "$PREFIX/bin/gh" \
+    && curl -fsSL -o "$PREFIX/docs/gh-skill.md" \
+        "https://raw.githubusercontent.com/cli/cli/${tag}/skills/gh/SKILL.md" \
+    && test -s "$PREFIX/docs/gh-skill.md" \
+    && "$PREFIX/bin/gh" --version | head -n 1 | grep -q "gh version ${version}" \
+    && echo "GitHub CLI ${version}" > "$PREFIX/version" \
+    && rm -rf /tmp/gh_* /home/agent
+
+FROM scratch
+COPY --from=build /opt/tools/github /
+LABEL org.opencontainers.image.title="handler-ai-tool-github"

@@ -1,0 +1,22 @@
+# Go tool (contract G.1, handler.tool/v1): the Go toolchain, for the agents that build Go.
+# Nothing to configure: chosen by name.
+apiVersion = "handler.tool/v1"
+name = "go"
+description = "Go, the official toolchain"
+image = "localhost/handler-ai-tool-go"  # no tag: built, then extracted (G.4)
+commands = ["go", "gofmt"]
+# Offline: the version, reaches nothing.
+check = ["go", "version"]
+# Go's module proxy and checksum database. A module the proxy does not serve (a private one)
+# is fetched from its own host: an allowed host of the agent, and GOPRIVATE in the project.
+egress = ["proxy.golang.org:443", "sum.golang.org:443"]
+
+[env]
+# The tool's Go, always: a go.mod asking for a newer one fails and says so, rather than the go
+# command downloading another toolchain at the session's start (a rebuild brings the latest).
+GOTOOLCHAIN = "local"
+
+[[caches]]
+target = "~/go"
+about = "Go modules, and the commands `go install` puts in ~/go/bin (on PATH)"
+bin = "bin"

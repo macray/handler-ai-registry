@@ -1,0 +1,23 @@
+# Java tool (contract G.1, handler.tool/v1): Java 25 (Eclipse Temurin JDK) and Maven, for the
+# agents that build Java. Nothing to configure: chosen by name.
+apiVersion = "handler.tool/v1"
+name = "java"
+description = "Java 25 (Temurin JDK) and Maven"
+image = "localhost/handler-ai-tool-java"  # no tag: built, then extracted (G.4)
+# The JDK's everyday tools; the others are in $JAVA_HOME/bin.
+commands = [
+    "java", "javac", "jar", "javadoc", "javap", "jshell", "jcmd", "jps", "jstack", "jdeps",
+    "jlink", "keytool", "mvn",
+]
+# Offline: Maven's and the JDK's versions, reaches nothing.
+check = ["mvn", "--version"]
+# Maven Central: dependencies and plugins. Another repository (a company's) is the project's
+# own setting, and its host an allowed host of the agent.
+egress = ["repo.maven.apache.org:443"]
+
+[env]
+JAVA_HOME = "/opt/tools/java/jdk"
+
+[[caches]]
+target = "~/.m2"
+about = "Maven's packages and plugins"

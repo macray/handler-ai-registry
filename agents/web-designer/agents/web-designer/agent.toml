@@ -1,0 +1,4 @@
+[agent]
+name = "Web designer"
+description = "Designs, builds and polishes this project's web pages and app screens"
+addons = ["taste"]

@@ -1,0 +1,18 @@
+# Bun tool (contract G.1, handler.tool/v1): Bun, for the agents working on JavaScript and
+# TypeScript projects that use it. The agents that write Handler apps have it from app-builder
+# instead (pinned to the version apps run on): an agent cannot have both (one command, two
+# tools). Nothing to configure: chosen by name.
+apiVersion = "handler.tool/v1"
+name = "bun"
+description = "Bun: JavaScript and TypeScript runtime, package manager and test runner"
+image = "localhost/handler-ai-tool-bun"  # no tag: built, then extracted (G.4)
+commands = ["bun", "bunx"]
+# Offline: the version, reaches nothing.
+check = ["bun", "--version"]
+# npm packages.
+egress = ["registry.npmjs.org:443"]
+
+[[caches]]
+target = "~/.bun"
+about = "Bun's packages, and the commands it installs (on PATH)"
+bin = "bin"

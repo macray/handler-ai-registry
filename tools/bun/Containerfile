@@ -1,0 +1,36 @@
+# Bun tool image (contract G.1): Bun's release binary, shipped as the installed tree only,
+# mounted read-only at /opt/tools/bun.
+#
+# Not pinned: every rebuild installs the latest release; the build fails if the tag, the archive
+# or its checksum cannot be had.
+ARG TOOLBOX_IMAGE=localhost/handler-ai-toolbox:latest
+FROM ${TOOLBOX_IMAGE} AS build
+ARG PREFIX=/opt/tools/bun
+
+# The latest tag from the redirect of releases/latest: no API call (rate-limited without a
+# token). On x86_64 without AVX2, Bun's baseline build, as its installer picks it.
+RUN set -eu \
+    && tag="$(curl -fsSI https://github.com/oven-sh/bun/releases/latest \
+        | sed -n 's#^location: .*/releases/tag/\(bun-v[0-9][0-9.]*\)\r\?$#\1#ip')" \
+    && test -n "$tag" \
+    && case "$(uname -m)" in \
+        x86_64) target=x64; grep -qw avx2 /proc/cpuinfo || target=x64-baseline ;; \
+        aarch64) target=aarch64 ;; \
+        *) exit 1 ;; \
+    esac \
+    && archive="bun-linux-${target}.zip" \
+    && base="https://github.com/oven-sh/bun/releases/download/${tag}" \
+    && cd /tmp \
+    && curl -fsSLO "${base}/${archive}" \
+    && curl -fsSL "${base}/SHASUMS256.txt" | grep " ${archive}\$" | sha256sum -c - \
+    && unzip -q "$archive" \
+    && mkdir -p "$PREFIX/bin" \
+    && install -m 0755 "bun-linux-${target}/bun" "$PREFIX/bin/bun" \
+    && ln -s bun "$PREFIX/bin/bunx" \
+    && "$PREFIX/bin/bun" --version | grep -qx "${tag#bun-v}" \
+    && echo "Bun ${tag#bun-v}" > "$PREFIX/version" \
+    && rm -rf /tmp/bun-linux-* /home/agent
+
+FROM scratch
+COPY --from=build /opt/tools/bun /
+LABEL org.opencontainers.image.title="handler-ai-tool-bun"

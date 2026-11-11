@@ -1,0 +1,72 @@
+{
+  "fields": {
+    "type": "object",
+    "properties": {
+      "target": {
+        "type": "string",
+        "title": "What to audit",
+        "description": "A page, a flow, a folder or a component. Empty: the whole interface."
+      }
+    }
+  },
+  "result": {
+    "type": "object",
+    "required": ["verdict", "total", "band", "scores", "integrity", "findings", "nextSteps", "notChecked"],
+    "properties": {
+      "verdict": {
+        "title": "Verdict",
+        "enum": ["nothing-blocking", "fix-before-release", "blocking"],
+        "description": "nothing-blocking: no P0 or P1; fix-before-release: a P1, no P0; blocking: a P0.",
+        "x-handler": "verdict"
+      },
+      "total": { "title": "Health score (out of 20)", "type": "integer", "minimum": 0, "maximum": 20 },
+      "band": {
+        "title": "Rating",
+        "enum": ["excellent", "good", "acceptable", "poor", "critical"]
+      },
+      "scores": {
+        "title": "Scores",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["dimension", "score", "keyFinding"],
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "enum": ["accessibility", "performance", "theming", "responsive", "implementation-integrity"]
+            },
+            "score": { "title": "Score (0-4)", "type": "integer", "minimum": 0, "maximum": 4 },
+            "keyFinding": { "title": "Key finding", "type": "string" }
+          }
+        }
+      },
+      "integrity": { "title": "Implementation integrity", "type": "string" },
+      "findings": {
+        "title": "Findings",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["severity", "title", "where", "category", "impact", "fix"],
+          "properties": {
+            "severity": { "title": "Severity", "enum": ["P3", "P2", "P1", "P0"], "x-handler": "verdict" },
+            "title": { "title": "Issue", "type": "string" },
+            "where": { "title": "Where", "type": "string", "description": "component, file:line" },
+            "category": {
+              "title": "Category",
+              "enum": ["accessibility", "performance", "theming", "responsive", "implementation-integrity"]
+            },
+            "impact": { "title": "Impact", "type": "string" },
+            "standard": { "title": "Standard", "type": "string", "description": "the WCAG criterion or standard, when one applies" },
+            "fix": { "title": "Fix", "type": "string" },
+            "command": { "title": "Command", "type": "string", "description": "the Impeccable command for it" }
+          }
+        }
+      },
+      "patterns": { "title": "Patterns", "type": "array", "items": { "type": "string" } },
+      "positive": { "title": "What works", "type": "array", "items": { "type": "string" } },
+      "nextSteps": { "title": "Next steps", "type": "array", "items": { "type": "string" } },
+      "notChecked": { "title": "Not checked", "type": "string" }
+    }
+  },
+  "timeoutSec": 3600
+}

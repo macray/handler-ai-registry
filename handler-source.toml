@@ -1,0 +1,3 @@
+apiVersion = "handler.source/v1"
+name = "Handler"
+description = "The apps, agents and tools Handler offers, reviewed by its maintainer."

@@ -1,0 +1,53 @@
+# Notes: paste your notes (a meeting, a call, a brain dump), get the action items, the decisions,
+# the open questions and a follow-up to send; tick your actions as you do them (contract H,
+# handler.app/v1). Nothing here is yours: you give it a folder and an agent when you install it.
+apiVersion = "handler.app/v1"
+name = "notes"
+version = "0.1.1"
+description = "Paste your notes, get the actions, decisions and a follow-up; see what's still open"
+
+[needs.files.notes]
+description = "Where your notes are kept (notes/, actions/), shared with Scribe"
+mode = "rw"
+init = ["agent/README.md"]      # the folder's format, for the agent and the app
+
+[needs.agents.scribe]
+description = "Turns your notes into actions, decisions and a follow-up, and tells you what's still open"
+from = "agent"                  # agent.toml, instructions.md, interface.json
+worksIn = "notes"
+
+# Made from the app's page (Manage), each off until you turn it on; results come to your inbox.
+[[automations]]
+description = "Notes you dropped in the folder turned into actions, every 2 hours"
+when = { every = "2h" }
+run = { agent = "scribe", input = { fields = { request = "Turn my new notes into actions. If there are none, say nothing." } } }
+
+[[automations]]
+description = "What's still open for you, weekdays at 9:00"
+when = { at = "09:00", days = ["mon", "tue", "wed", "thu", "fri"] }
+run = { agent = "scribe", input = { fields = { request = "Morning: what is late or due today among my actions, and the one to do first." } } }
+
+# Its actions, what you can ask it in a sentence (H.12): its code answers at once; questions on your notes are its agent's.
+[actions.note]
+description = "Take a note (of a meeting, a call, an idea), then turn it into actions"
+examples = ["Take a note: call with Sam, he'll send the quote Monday, I must check the budget", "Note that we moved the launch to March"]
+route = "POST /api/actions/note"
+[actions.note.fields]
+type = "object"
+required = ["text"]
+properties.text = { type = "string", title = "Notes", maxLength = 50000, "x-handler" = "long-text" }
+properties.title = { type = "string", title = "Title", maxLength = 100 }
+
+[actions.open]
+description = "Say which actions are still open, late or due today: mine, or everyone's"
+examples = ["What's still open for me?", "What do I have to do from my meetings?", "What is everyone waiting on?"]
+route = "POST /api/actions/open"
+[actions.open.fields]
+type = "object"
+properties.who = { enum = ["me", "everyone"], title = "Whose", description = "me when not said" }
+properties.day = { type = "string", title = "Day", pattern = "^\\d{4}-\\d{2}-\\d{2}$", description = "YYYY-MM-DD, today when not said" }
+
+[actions.question]
+description = "Answer a question from my notes: what was decided, who said what, what changed"
+examples = ["What did we decide about pricing?", "When did Sam promise the quote?", "Summarise this week's meetings"]
+agent = "scribe"

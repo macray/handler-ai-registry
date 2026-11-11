@@ -1,0 +1,4 @@
+[agent]
+name = "Interface designer"
+description = "Critiques, polishes and hardens the interface this project already has"
+addons = ["impeccable"]

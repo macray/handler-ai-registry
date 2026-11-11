@@ -1,0 +1,5 @@
+# A job: each run audits the project's code and gives back its findings, ranked. It runs
+# unattended (permissions "bypass"), so "changes nothing" rests on its instructions alone.
+[agent]
+name = "Ponytail audit"
+description = "Audits the project's code, most important first; changes nothing"

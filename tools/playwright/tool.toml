@@ -1,0 +1,22 @@
+# Playwright MCP tool (contract G.1, handler.tool/v1): a web browser for the agent, as an MCP
+# server. Headless, or a window the person watches when the agent has a display (contract A.6).
+# A connection needs no setting: `tool = "playwright"` is enough.
+apiVersion = "handler.tool/v1"
+name = "playwright"
+description = "Web browser (Playwright MCP): headless, or a window you watch"
+image = "localhost/handler-ai-tool-playwright"  # no tag: built, then extracted (G.4)
+commands = ["playwright-mcp", "playwright-mcp-check"]
+# the toolbox's Chromium (its `chromium` system package), driven by Playwright; Node runs it
+needs = ["chromium", "node"]
+# Offline: launches the toolbox's Chromium headless through the installed Playwright.
+check = ["playwright-mcp-check"]
+# No egress of its own: the browser goes where the task needs, through the sandbox's proxy, so the
+# agent's allow-list decides (log-only mode shows which hosts a site needs). A local preview
+# on the sandbox's 127.0.0.1 (e.g. `shopify theme dev`) needs none.
+
+[mcp]
+command = ["playwright-mcp"]
+
+[settings.headless]
+env = "HANDLER_PLAYWRIGHT_HEADLESS"
+description = "\"1\": always headless. Not set (or any other value): a window when the agent has a display, headless otherwise"

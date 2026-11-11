@@ -1,0 +1,18 @@
+# Lightpanda tool (contract G.1, handler.tool/v1): a headless browser for the agent, as an MCP
+# server: Lightpanda's own (`lightpanda mcp`), made for agents, without graphical rendering. Much
+# lighter than the playwright tool's Chromium, but not a full browser: no window, and its
+# screenshots are a text layout. Nothing to configure: chosen by name, without a connection.
+apiVersion = "handler.tool/v1"
+name = "lightpanda"
+description = "Headless browser for agents (Lightpanda): fast and light, no rendering"
+image = "localhost/handler-ai-tool-lightpanda"  # no tag: built, then extracted (G.4)
+commands = ["lightpanda", "lightpanda-check"]
+# Offline: loads a data: page, runs its parser and JavaScript engine, reads it back.
+check = ["lightpanda-check"]
+# No egress of its own: the browser goes where the task needs, through the sandbox's proxy, so the
+# agent's allow-list decides (log-only mode shows which hosts a site needs). A local preview on the
+# sandbox's 127.0.0.1 needs none. Its `search` tool, without an API key, calls Keenable's public
+# endpoint: an allowed host of the agent too, if it is to work.
+
+[mcp]
+command = ["lightpanda", "mcp"]

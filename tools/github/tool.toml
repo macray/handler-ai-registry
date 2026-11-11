@@ -1,0 +1,45 @@
+# GitHub tool (contract G.1, handler.tool/v1): the GitHub CLI (`gh`) and git over HTTPS, as the
+# account behind one token. A connection gives the token; see PROVISIONING.md for the token to create.
+apiVersion = "handler.tool/v1"
+name = "github"
+description = "GitHub CLI (gh) and git over HTTPS, as the account of a token"
+image = "localhost/handler-ai-tool-github"  # no tag: built, then extracted (G.4)
+commands = ["gh"]
+needs = ["git"]  # the toolbox's git: clone, fetch, push, with `gh` as its credential helper
+# Offline: prints the version, reaches nothing.
+check = ["gh", "--version"]
+
+# github.com: git over HTTPS (clone, fetch, push) and the web pages `gh` links to; api.github.com:
+# every `gh` command; uploads.github.com: release assets uploaded; codeload.github.com: source
+# archives; *.githubusercontent.com: release downloads, raw files, Actions logs and artifacts
+# (they redirect there). Log-only mode shows the hosts a session really reaches.
+egress = [
+    "github.com:443",
+    "api.github.com:443",
+    "uploads.github.com:443",
+    "codeload.github.com:443",
+    "*.githubusercontent.com:443",
+]
+
+[env]
+GH_PROMPT_DISABLED = "1"               # never wait for an answer: fail instead
+GH_NO_UPDATE_NOTIFIER = "1"            # the image is updated by a rebuild
+GH_NO_EXTENSION_UPDATE_NOTIFIER = "1"
+# git asks `gh` for github.com's credentials (the token: phantom swapped by the proxy, also inside
+# Basic auth); SSH remotes of github.com go over HTTPS (the sandbox has no SSH out). Set through
+# the env only: nothing is written to the project's .git/config, which the host shares.
+GIT_CONFIG_COUNT = "4"
+GIT_CONFIG_KEY_0 = "credential.https://github.com.helper"
+GIT_CONFIG_VALUE_0 = ""                # an empty helper first: helpers set before are not asked
+GIT_CONFIG_KEY_1 = "credential.https://github.com.helper"
+GIT_CONFIG_VALUE_1 = "!gh auth git-credential"
+GIT_CONFIG_KEY_2 = "url.https://github.com/.insteadOf"
+GIT_CONFIG_VALUE_2 = "git@github.com:"
+GIT_CONFIG_KEY_3 = "url.https://github.com/.insteadOf"
+GIT_CONFIG_VALUE_3 = "ssh://git@github.com/"
+
+[secretSlots.token]
+env = "GH_TOKEN"   # read by `gh` before any login: no `gh auth login`, no hosts.yml
+required = true
+description = "fine-grained personal access token (github_pat_…) of the agent's account, limited to its repositories"
+hosts = ["github.com:443", "api.github.com:443", "uploads.github.com:443"]

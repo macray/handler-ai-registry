@@ -1,0 +1,27 @@
+# Rust tool (contract G.1, handler.tool/v1): the stable Rust toolchain (rustc, cargo, rustfmt,
+# clippy) through rustup, for the agents that build Rust. Nothing to configure: chosen by name.
+apiVersion = "handler.tool/v1"
+name = "rust"
+description = "Rust: the stable toolchain (cargo, rustfmt, clippy)"
+image = "localhost/handler-ai-tool-rust"  # no tag: built, then extracted (G.4)
+commands = [
+    "rustup", "cargo", "rustc", "rustdoc", "rustfmt", "cargo-fmt", "cargo-clippy", "clippy-driver",
+]
+# Offline: the toolchain's version, reaches nothing.
+check = ["cargo", "--version"]
+# rustc links with the system's C compiler (the toolbox's `gcc` system package gives it), and
+# crates with C parts build with it.
+needs = ["cc"]
+# crates.io: its index, its downloads, its API (`cargo search`). A git dependency or another
+# registry is an allowed host of the agent.
+egress = ["index.crates.io:443", "static.crates.io:443", "crates.io:443"]
+
+[env]
+# The toolchain is the tool's, read-only, updated by a rebuild: rustup cannot install another
+# one in a session (a rust-toolchain.toml naming another fails, and says so).
+RUSTUP_HOME = "/opt/tools/rust/rustup"
+
+[[caches]]
+target = "~/.cargo"
+about = "Rust crates, and the commands `cargo install` puts in ~/.cargo/bin (on PATH)"
+bin = "bin"

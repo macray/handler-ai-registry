@@ -1,0 +1,39 @@
+# taste tool (contract G.1, handler.tool/v1): Leonxlnx's taste-skill, art direction for web pages
+# and app screens, whose scripts deal a direction, find open-licence pictures and check the page in
+# a real browser. No program of its own: its scripts run on the toolbox's Node and Chromium.
+# Nothing to configure: chosen by name.
+apiVersion = "handler.tool/v1"
+name = "taste"
+description = "Art direction for web pages and app screens (Leonxlnx's taste-skill), checked in a real browser"
+needs = ["chromium", "node"]
+# Where assets.mjs searches and downloads open-licence pictures (Openverse, Wikimedia Commons,
+# the Art Institute of Chicago, the Met, the Internet Archive, NASA), the photographs the
+# direction sheets name (picsum.photos), and the Google Fonts its type systems use. Openverse
+# also finds pictures kept elsewhere: Flickr's is here, other sites need the agent's allow-list.
+egress = [
+  "api.openverse.org:443",
+  "live.staticflickr.com:443",
+  "commons.wikimedia.org:443",
+  "upload.wikimedia.org:443",
+  "api.artic.edu:443",
+  "www.artic.edu:443",
+  "collectionapi.metmuseum.org:443",
+  "images.metmuseum.org:443",
+  "archive.org:443",
+  "*.archive.org:443",
+  "images-api.nasa.gov:443",
+  "images-assets.nasa.gov:443",
+  "picsum.photos:443",
+  "fastly.picsum.photos:443",
+  "fonts.googleapis.com:443",
+  "fonts.gstatic.com:443",
+]
+
+[env]
+# The scripts start Chromium themselves; its own sandbox cannot start under the `strict`
+# confinement (the agent's sandbox is the boundary). Fedora's launcher adds these flags.
+CHROMIUM_USER_FLAGS = "--no-sandbox"
+
+[[caches]]
+target = "~/.taste-skill"
+about = "taste: the directions dealt lately, so that two projects do not get the same"

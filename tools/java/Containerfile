@@ -1,0 +1,53 @@
+# Java tool image (contract G.1): the Eclipse Temurin JDK 25 and Maven 3, from their release
+# archives, shipped as the installed tree only, mounted read-only at /opt/tools/java.
+#
+# Not pinned within Java 25 and Maven 3: every rebuild installs the latest of each; the build
+# fails if an archive or its checksum cannot be had. Another Java or Maven 4 is a change of
+# this file.
+ARG TOOLBOX_IMAGE=localhost/handler-ai-toolbox:latest
+FROM ${TOOLBOX_IMAGE} AS build
+ARG PREFIX=/opt/tools/java
+ARG JAVA_MAJOR=25
+ARG MAVEN_MAJOR=3
+
+# The JDK: Adoptium's API names the latest release of the major version and its checksum.
+RUN set -eu \
+    && case "$(uname -m)" in x86_64) arch=x64 ;; aarch64) arch=aarch64 ;; *) exit 1 ;; esac \
+    && api="https://api.adoptium.net/v3/assets/latest/${JAVA_MAJOR}/hotspot" \
+    && asset="$(curl -fsSL "${api}?architecture=${arch}&image_type=jdk&os=linux&vendor=eclipse" \
+        | jq -er '.[0] | [.release_name, .binary.package.link, .binary.package.checksum] | @tsv')" \
+    && release="$(echo "$asset" | cut -f1)" \
+    && cd /tmp \
+    && curl -fsSL -o jdk.tar.gz "$(echo "$asset" | cut -f2)" \
+    && echo "$(echo "$asset" | cut -f3)  jdk.tar.gz" | sha256sum -c - \
+    && mkdir -p "$PREFIX/jdk" \
+    && tar -xzf jdk.tar.gz -C "$PREFIX/jdk" --strip-components=1 \
+    && echo "Temurin ${release#jdk-}" > /tmp/version \
+    && rm jdk.tar.gz
+
+# Maven: the latest final release of the major version, as Maven Central lists them.
+RUN set -eu \
+    && central=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven \
+    && version="$(curl -fsSL "$central/maven-metadata.xml" \
+        | sed -n "s#.*<version>\(${MAVEN_MAJOR}\.[0-9]*\.[0-9]*\)</version>.*#\1#p" \
+        | sort -V | tail -n 1)" \
+    && test -n "$version" \
+    && archive="apache-maven-${version}-bin.tar.gz" \
+    && cd /tmp \
+    && curl -fsSLO "$central/$version/$archive" \
+    && echo "$(curl -fsSL "$central/$version/$archive.sha512")  $archive" | sha512sum -c - \
+    && mkdir -p "$PREFIX/maven" \
+    && tar -xzf "$archive" -C "$PREFIX/maven" --strip-components=1 \
+    && rm "$archive" \
+    && mkdir -p "$PREFIX/bin" \
+    && for c in java javac jar javadoc javap jshell jcmd jps jstack jdeps jlink keytool; do \
+        ln -s "../jdk/bin/$c" "$PREFIX/bin/$c"; \
+    done \
+    && ln -s ../maven/bin/mvn "$PREFIX/bin/mvn" \
+    && JAVA_HOME="$PREFIX/jdk" "$PREFIX/bin/mvn" --version | grep -q "Apache Maven ${version}" \
+    && echo "$(cat /tmp/version), Maven ${version}" > "$PREFIX/version" \
+    && rm -rf /tmp/version /home/agent
+
+FROM scratch
+COPY --from=build /opt/tools/java /
+LABEL org.opencontainers.image.title="handler-ai-tool-java"

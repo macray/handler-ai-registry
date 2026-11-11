@@ -1,0 +1,6 @@
+# A job: each run audits the project's interface and gives back its score and findings, P0 first.
+# It runs unattended (permissions "bypass"), so "changes nothing" rests on its instructions alone.
+[agent]
+name = "Design audit"
+description = "Audits the project's interface: accessibility, performance, theming, responsive; changes nothing"
+addons = ["impeccable"]

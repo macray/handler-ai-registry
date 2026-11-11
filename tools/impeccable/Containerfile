@@ -1,0 +1,29 @@
+# Impeccable tool image (contract G.1): the engine binary its skill runs (Paul Bakaus's
+# Impeccable, Apache-2.0), at the version the skill pins (skills/impeccable/scripts/VERSION),
+# downloaded from the project's releases and checked against the skill's engine-checksums.txt
+# before it is kept. Shipped as the installed tree, mounted read-only at /opt/tools/impeccable.
+ARG TOOLBOX_IMAGE=localhost/handler-ai-toolbox:latest
+FROM ${TOOLBOX_IMAGE} AS build
+ARG PREFIX=/opt/tools/impeccable
+
+COPY skills/impeccable/scripts/VERSION skills/impeccable/scripts/engine-checksums.txt /tmp/engine/
+RUN set -eu \
+    && version="$(tr -d '[:space:]' < /tmp/engine/VERSION)" \
+    && case "$(uname -m)" in \
+         x86_64) asset=impeccable-linux-x64 ;; \
+         aarch64) asset=impeccable-linux-arm64 ;; \
+         *) echo "no Impeccable engine for $(uname -m)" >&2; exit 1 ;; \
+       esac \
+    && sum="$(awk -v v="$version" -v a="$asset" '$1 == v && $2 == a { print $3 }' /tmp/engine/engine-checksums.txt)" \
+    && test -n "$sum" \
+    && mkdir -p "$PREFIX/bin" \
+    && curl -fsSL --retry 2 -o "$PREFIX/bin/impeccable" \
+         "https://github.com/pbakaus/impeccable/releases/download/engine-v$version/$asset" \
+    && echo "$sum  $PREFIX/bin/impeccable" | sha256sum -c - \
+    && chmod 0755 "$PREFIX/bin/impeccable" \
+    && echo "Impeccable engine $version" > "$PREFIX/version" \
+    && rm -rf /tmp/engine
+
+FROM scratch
+COPY --from=build /opt/tools/impeccable /
+LABEL org.opencontainers.image.title="handler-ai-tool-impeccable"

@@ -1,0 +1,30 @@
+# Lightpanda tool image (contract G.1): the release binary of Lightpanda (Zig, V8; needs only the
+# toolbox's glibc), shipped as the installed tree only, mounted read-only at /opt/tools/lightpanda.
+# bin/lightpanda is handler's wrapper (handler/lightpanda), the binary itself is in lib/.
+#
+# Not pinned: every rebuild installs the latest release (not the nightly); the build fails if the
+# release, the binary or its checksum (the digest GitHub's API lists for the asset) cannot be had.
+ARG TOOLBOX_IMAGE=localhost/handler-ai-toolbox:latest
+FROM ${TOOLBOX_IMAGE} AS build
+ARG PREFIX=/opt/tools/lightpanda
+
+COPY handler/ /tmp/handler/
+RUN set -eu \
+    && case "$(uname -m)" in x86_64) arch=x86_64 ;; aarch64) arch=aarch64 ;; *) exit 1 ;; esac \
+    && asset="lightpanda-${arch}-linux" \
+    && release="$(curl -fsSL https://api.github.com/repos/lightpanda-io/browser/releases/latest)" \
+    && version="$(echo "$release" | jq -er .tag_name)" \
+    && url="$(echo "$release" | jq -er --arg a "$asset" '.assets[] | select(.name == $a) | .browser_download_url')" \
+    && sha="$(echo "$release" | jq -er --arg a "$asset" '.assets[] | select(.name == $a) | .digest | ltrimstr("sha256:")')" \
+    && mkdir -p "$PREFIX/bin" "$PREFIX/lib" \
+    && curl -fsSL -o "$PREFIX/lib/lightpanda" "$url" \
+    && echo "${sha}  $PREFIX/lib/lightpanda" | sha256sum -c - \
+    && chmod 0755 "$PREFIX/lib/lightpanda" \
+    && install -m 0755 /tmp/handler/lightpanda /tmp/handler/lightpanda-check "$PREFIX/bin/" \
+    && test "$(LIGHTPANDA_DISABLE_TELEMETRY=true "$PREFIX/bin/lightpanda" version)" = "${version#v}" \
+    && echo "Lightpanda ${version#v}" > "$PREFIX/version" \
+    && rm -rf /tmp/handler /home/agent
+
+FROM scratch
+COPY --from=build /opt/tools/lightpanda /
+LABEL org.opencontainers.image.title="handler-ai-tool-lightpanda"
